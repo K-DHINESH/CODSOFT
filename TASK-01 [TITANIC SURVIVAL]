@@ -1,0 +1,222 @@
+# Importing necessary libraries
+
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from joblib import dump
+
+# Loading Titanic dataset
+
+titanic_df = pd.read_csv('Downloads/tested.csv')
+
+
+# Exploring and preprocessing the data
+
+def preprocess_data(df):
+    df = df.dropna(axis=1)
+    return df
+
+titanic_df = preprocess_data(titanic_df)
+
+# Splitting the data into features (X) and target variable (y)
+
+X = titanic_df.drop('Survived', axis=1)
+y = titanic_df['Survived']
+
+# Converting categorical variables to numerical format
+
+X = pd.get_dummies(X, drop_first=True)
+
+# Training the model
+
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X, y)
+
+# Saving the trained model for future use
+
+dump(model, 'titanic_model.joblib')
+
+
+#Defining a function to search for a passenger by name and make predictions
+
+def find_survival_status_by_name(name):
+    # Check if the name exists in the dataset
+    
+    if name in titanic_df['Name'].values:
+        # Get the survival status for the person with the given name
+        
+        survival_status = titanic_df.loc[titanic_df['Name'] == name, 'Survived'].values[0]
+        
+        if survival_status == 1:
+            return f"{name} survived."
+        else:
+            return f"{name} did not survive."
+    else:
+        return f"No information found for {name} in the dataset."
+    
+
+#CHECKING WITH THE NAMES WHO WERE SURVIVED
+
+name_to_check = input("Enter a name: ")
+result = find_survival_status_by_name(name_to_check)
+print(result)
+
+
+# Plotting Pie Chart
+
+survival_counts = titanic_df['Survived'].value_counts()
+labels = ['Not Survived', 'Survived']
+
+plt.pie(survival_counts, labels=labels, autopct='%1.1f%%', startangle=90, colors=['red', 'lightgreen'])
+plt.title('Survival Distribution')
+plt.show()
+
+age_column_name = 'Age'
+
+if age_column_name in titanic_df.columns:
+    
+    # Plotting Age Group Distribution
+    
+    plt.figure(figsize=(10, 6))
+
+    # Create age groups using the cut function
+    
+    titanic_df['AgeGroup'] = pd.cut(titanic_df[age_column_name], bins=[0, 18, 35, 50, 80], labels=['0-18', '19-35', '36-50', '51-80'])
+
+    # Plotting the distribution
+    
+    age_group_counts = titanic_df.groupby(['AgeGroup', 'Survived']).size().unstack(fill_value=0)
+    age_group_counts.plot(kind='bar', stacked=True, color=['red', 'lightgreen'])
+    plt.title('Survival Distribution Across Age Groups')
+    plt.xlabel('Age Group')
+    plt.ylabel('Count')
+    plt.show()
+    
+else:
+    
+    print(f"The '{age_column_name}' column is not present in the dataset.")
+
+
+
+sex_column_name = 'Sex'
+if sex_column_name in titanic_df.columns:
+    # Plotting Number of Male and Female Passengers
+    plt.figure(figsize=(8, 5))
+
+    # Count the number of passengers by gender
+    sex_counts = titanic_df[sex_column_name].value_counts()
+
+    # Plotting the distribution
+    sex_counts.plot(kind='bar', color=['skyblue', 'lightcoral'])
+    plt.title('Number of Male and Female Passengers')
+    plt.xlabel('Gender')
+    plt.ylabel('Count')
+
+    # Adding text annotations
+    for i, count in enumerate(sex_counts):
+        plt.text(i, count + 5, str(count), ha='center', va='bottom', fontweight='bold')
+
+    plt.show()
+else:
+    print(f"The '{sex_column_name}' column is not present in the dataset.")
+
+
+
+# Check if 'Pclass' column exists in the dataset
+pclass_column_name = 'Pclass'
+if pclass_column_name in titanic_df.columns:
+    # Plotting Survival Distribution Based on Pclass
+    plt.figure(figsize=(8, 5))
+
+    # Count the number of passengers by survival status and passenger class
+    survival_pclass_counts = titanic_df.groupby(['Pclass', 'Survived']).size().unstack(fill_value=0)
+
+    # Plotting the distribution
+    survival_pclass_counts.plot(kind='bar', stacked=True, color=['tomato', 'lightgreen'])
+    plt.title('Survival Distribution Based on Passenger class')
+    plt.xlabel('Pclass')
+    plt.ylabel('Count')
+
+    # Adding legend
+    plt.legend(['Not Survived', 'Survived'], loc='upper left')
+
+    plt.show()
+else:
+    print(f"The '{pclass_column_name}' column is not present in the dataset.")
+
+
+# Step 8: Define a function to check predicted values against actual values
+def check_predictions(model, X, y):
+    # Make predictions using the trained model
+    predictions = model.predict(X)
+
+    # Create a DataFrame to compare actual vs predicted values
+    comparison_df = pd.DataFrame({'Actual': y, 'Predicted': predictions})
+
+    return comparison_df
+
+# Example usage
+comparison_df = check_predictions(model, X, y)
+
+# Display the comparison DataFrame
+print("Comparison of Actual vs Predicted Values:")
+print(comparison_df)
+
+
+
+# Defining a function to check predicted values against actual values and plot a grouped bar chart
+def check_predictions_grouped_bar_chart(model, X, y):
+    # Make predictions using the trained model
+    predictions = model.predict(X)
+
+    # Create a DataFrame to compare actual vs predicted values
+    comparison_df = pd.DataFrame({'Actual': y, 'Predicted': predictions})
+
+    # Count the number of correct and incorrect predictions
+    correct_predictions = (comparison_df['Actual'] == comparison_df['Predicted']).sum()
+    incorrect_predictions = len(comparison_df) - correct_predictions
+
+    # Plotting Grouped Bar Chart
+    plt.figure(figsize=(8, 6))
+
+    # Bar positions
+    positions = [1, 2]
+
+    # Heights of bars
+    heights = [correct_predictions, incorrect_predictions]
+
+    # Bar colors
+    colors = ['lightgreen', 'tomato']
+
+    # Bar labels
+    labels = ['Correct', 'Incorrect']
+
+    # Plotting the grouped bar chart
+    plt.bar(positions, heights, color=colors)
+    plt.title('Comparison of Actual vs Predicted Values')
+    plt.xlabel('Prediction Outcome')
+    plt.ylabel('Count')
+    plt.xticks(positions, labels)
+
+    plt.show()
+
+# Example usage
+check_predictions_grouped_bar_chart(model, X, y)
+
+
+predictions = model.predict(X)
+
+# Accuracy
+accuracy = accuracy_score(y, predictions)
+print(f'Accuracy: {accuracy:.4f}')
+
+# Confusion Matrix
+conf_matrix = confusion_matrix(y, predictions)
+print('\nConfusion Matrix:')
+print(conf_matrix)
+
+# Classification Report (Precision, Recall, F1 Score)
+class_report = classification_report(y, predictions)
+print('\nClassification Report:')
+print(class_report)
