@@ -1,0 +1,84 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score,confusion_matrix,classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from tabulate import tabulate
+
+dataset=pd.read_csv('Downloads/IRIS.csv')
+dataset.head()
+
+x=dataset.drop('species',axis=1)
+y=dataset['species']
+
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.2,random_state=42)
+model=RandomForestClassifier()
+model.fit(x_train,y_train)
+
+y_pred=model.predict(x_test)
+
+Accuracy_Score=accuracy_score(y_test,y_pred)
+Confusion_matrix=confusion_matrix(y_test,y_pred)
+Classification_Report=classification_report(y_test,y_pred)
+print(f'Accuracy: {Accuracy_Score:.2f}')
+print(f'Confusion Matrix:\n{Confusion_matrix}')
+print(f'Classification Report:\n{Classification_Report}')
+
+sns.heatmap(Confusion_matrix, annot=True, fmt='d', cmap='Reds', cbar=True)
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+
+feature_importances = model.feature_importances_
+features = x.columns
+
+importance_df = pd.DataFrame({'Feature': features, 'Importance': feature_importances})
+importance_df = importance_df.sort_values(by='Importance', ascending=False)
+
+plt.figure(figsize=(9, 5))
+sns.barplot(x='Feature', y='Importance', hue='Feature', data=importance_df, palette='viridis', legend=False)
+plt.title('Feature Importance')
+plt.show()
+
+# Get input values from the user
+input_sepal_length = float(input("Enter the sepal length: "))
+input_sepal_width = float(input("Enter the sepal width: "))
+input_petal_length = float(input("Enter the petal length: "))
+input_petal_width = float(input("Enter the petal width: "))
+
+# Make predictions using the user-inputted values
+user_input = pd.DataFrame({
+    'sepal_length': [input_sepal_length],
+    'sepal_width': [input_sepal_width],
+    'petal_length': [input_petal_length],
+    'petal_width': [input_petal_width]
+})
+predicted_species = model.predict(user_input)
+
+# Check if any data is found for the specified species
+predicted_data = dataset[dataset['species'] == predicted_species[0]]
+
+if predicted_data.empty:
+    print(f"No data found for the predicted species: {predicted_species[0]}")
+else:
+    # Calculate average values for each feature
+    average_values = predicted_data.groupby('species').mean()
+
+    # Print the result in a formatted table (plain format)
+    print(f"\nPredicted species is {predicted_species[0]}\n")
+    print(f"\nAverage values for predicted species {predicted_species[0]}:\n")
+    print(tabulate(average_values[['sepal_length', 'sepal_width', 'petal_length', 'petal_width']], headers='keys', tablefmt='plain'))
+
+    # Calculate average values for each feature
+    average_values = predicted_data.groupby('species').mean()
+
+    # Plot the average values as a line plot
+
+    average_values.transpose().plot(kind='line', colormap='viridis', marker='o')
+    plt.title(f"Average Values for Predicted Species: {predicted_species[0]}")
+    plt.xlabel("Feature")
+    plt.ylabel("Average Value")
+    plt.show()
